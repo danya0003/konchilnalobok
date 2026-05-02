@@ -1,6 +1,7 @@
 {
-  "name": "rage-rat-server",
+  "name": "rage-rat",
   "version": "1.0.0",
+  "description": "Cyber Control Panel",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
